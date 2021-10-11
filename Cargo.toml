@@ -2,6 +2,7 @@
 
 members = [
     "cv",
+    "cv-calib",
     "cv-core",
     "cv-geom",
     "cv-pinhole",

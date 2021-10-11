@@ -1,0 +1,10 @@
+[package]
+name = "cv-calib"
+version = "0.1.0"
+authors = ["Caio Piccirillo <caiopiccirillo@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+image = "0.23.14"
+imageproc = "0.22.0"
+imgshow = { path = "../imgshow" }
