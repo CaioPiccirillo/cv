@@ -8,3 +8,4 @@ edition = "2018"
 image = "0.23.14"
 imageproc = "0.22.0"
 imgshow = { path = "../imgshow" }
+nalgebra = { version = "0.28.0", default-features = false, features = ["std"] }

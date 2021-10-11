@@ -2,21 +2,22 @@ use image::{GrayImage, Rgb};
 use imageproc::edges::canny;
 use imageproc::hough::{detect_lines, draw_polar_lines, LineDetectionOptions, PolarLine};
 use imageproc::map::map_colors;
+use nalgebra::{Matrix2, Point2, Vector2};
 struct ChessBoard {
     size: (u32, u32),
     square_size: f32,
 }
 
 impl ChessBoard {
-    fn new(size: (u32, u32), square_size: f32) -> ChessBoard {
+    pub fn new(size: (u32, u32), square_size: f32) -> ChessBoard {
         ChessBoard {
             size: size,
             square_size: square_size,
         }
     }
-
-    fn find(&self, gray_image: &GrayImage) -> Vec<(u32, u32)> {
-        let mut corners = Vec::new();
+    /// Finds the points of the chessboard pattern in the image.
+    pub fn find(&self, gray_image: &GrayImage) -> Vec<Point2<f32>> {
+        let mut points = Vec::new();
         let edges = canny(gray_image, 127.0, 255.0);
         // Detect lines using Hough transform
         let options = LineDetectionOptions {
@@ -32,10 +33,35 @@ impl ChessBoard {
         // Convert edge image to colour
         let color_edges = map_colors(&edges, |p| if p[0] > 0 { white } else { black });
 
+        // Find intersections of lines
+        for i in 0..lines.len() {
+            for j in i..lines.len() {
+                let alpha = if lines[i].r > 0. {
+                    lines[i].angle_in_degrees as f32
+                } else {
+                    lines[i].angle_in_degrees as f32 + 180.0
+                };
+                let beta = if lines[j].r > 0. {
+                    lines[j].angle_in_degrees as f32
+                } else {
+                    lines[j].angle_in_degrees as f32 + 180.0
+                };
+                #[rustfmt::skip]
+                let a: Matrix2<f32> = Matrix2::new(
+                    alpha.to_radians().cos(), alpha.to_radians().sin(),
+                    beta.to_radians().cos(), beta.to_radians().sin(),
+                );
+                let b: Vector2<f32> = Vector2::new(lines[i].r.abs(), lines[j].r.abs());
+                let decomp = a.lu();
+                let x = decomp.solve(&b);
+                println!("{:?}", x);
+            }
+        }
+
         // Draw lines on top of edge image
         let lines_image = draw_polar_lines(&color_edges, &lines, green);
         lines_image.save("../res/lines.png").unwrap();
-        corners
+        points
     }
 }
 
