@@ -33,15 +33,18 @@ impl ChessBoard {
         // Convert edge image to colour
         let color_edges = map_colors(&edges, |p| if p[0] > 0 { white } else { black });
 
+        // Draw lines on top of edge image
+        let lines_image = draw_polar_lines(&color_edges, &lines, green); // FIXME: Remove this drawing
+
         // Find intersections of lines
         for i in 0..lines.len() {
             for j in i..lines.len() {
-                let alpha = if lines[i].r > 0. {
+                let alpha = if lines[i].r >= 0. {
                     lines[i].angle_in_degrees as f32
                 } else {
                     lines[i].angle_in_degrees as f32 + 180.0
                 };
-                let beta = if lines[j].r > 0. {
+                let beta = if lines[j].r >= 0. {
                     lines[j].angle_in_degrees as f32
                 } else {
                     lines[j].angle_in_degrees as f32 + 180.0
@@ -54,12 +57,23 @@ impl ChessBoard {
                 let b: Vector2<f32> = Vector2::new(lines[i].r.abs(), lines[j].r.abs());
                 let decomp = a.lu();
                 let x = decomp.solve(&b);
-                println!("{:?}", x);
+                match x {
+                    Some(x) => {
+                        let point = Point2::new(x[0], x[1]);
+                        // Remove points that are outside the image
+                        if point.x <= gray_image.dimensions().0 as f32
+                            && point.y <= gray_image.dimensions().1 as f32
+                            && point.x >= 0.0
+                            && point.y >= 0.0
+                        {
+                            points.push(point);
+                        }
+                    }
+                    None => continue,
+                }
             }
         }
 
-        // Draw lines on top of edge image
-        let lines_image = draw_polar_lines(&color_edges, &lines, green);
         lines_image.save("../res/lines.png").unwrap();
         points
     }
@@ -68,12 +82,24 @@ impl ChessBoard {
 #[cfg(test)]
 mod tests {
     use super::ChessBoard;
-
+    use image::Rgb;
+    use imageproc::drawing::draw_cross_mut;
     #[test]
     fn show_chess_board() {
         let src_image = image::open("../res/left01.jpg").expect("Error opening image");
         let chess_board = ChessBoard::new((6, 9), 0.065);
-        let corners = chess_board.find(&src_image.to_luma8());
+        let gray_image = src_image.to_luma8();
+        let corners = chess_board.find(&gray_image);
+        let mut image_buffer = src_image.to_rgb8();
+        for i in 0..corners.len() {
+            draw_cross_mut(
+                &mut image_buffer,
+                Rgb::<u8>([255, 0, 0]),
+                corners[i][0] as i32,
+                corners[i][1] as i32,
+            );
+        }
+        image_buffer.save("../res/chess_board.png").unwrap();
         println!("{:?}", corners);
     }
 }
