@@ -1,8 +1,14 @@
 use image::{GrayImage, Rgb};
-use imageproc::edges::canny;
-use imageproc::hough::{detect_lines, draw_polar_lines, LineDetectionOptions, PolarLine};
-use imageproc::map::map_colors;
+use imageproc::{
+    edges::canny,
+    hough::{detect_lines, draw_polar_lines, LineDetectionOptions, PolarLine},
+    map::map_colors,
+};
 use nalgebra::{Matrix2, Point2, Vector2};
+
+trait Pattern {
+    fn find(&self, image: &GrayImage) -> Vec<Point2<f32>>;
+}
 struct ChessBoard {
     size: (u32, u32),
     square_size: f32,
@@ -15,8 +21,11 @@ impl ChessBoard {
             square_size: square_size,
         }
     }
+}
+
+impl Pattern for ChessBoard {
     /// Finds the points of the chessboard pattern in the image.
-    pub fn find(&self, gray_image: &GrayImage) -> Vec<Point2<f32>> {
+    fn find(&self, gray_image: &GrayImage) -> Vec<Point2<f32>> {
         let mut points = Vec::new();
         let edges = canny(gray_image, 127.0, 255.0);
         // Detect lines using Hough transform
@@ -81,7 +90,7 @@ impl ChessBoard {
 
 #[cfg(test)]
 mod tests {
-    use super::ChessBoard;
+    use super::*;
     use image::Rgb;
     use imageproc::drawing::draw_cross_mut;
     #[test]
