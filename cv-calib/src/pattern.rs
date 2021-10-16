@@ -27,6 +27,7 @@ impl Pattern for ChessBoard {
     /// Finds the points of the chessboard pattern in the image.
     fn find(&self, gray_image: &GrayImage) -> Vec<Point2<f32>> {
         let mut points = Vec::new();
+        // Detect edges usings canny
         let edges = canny(gray_image, 127.0, 255.0);
         // Detect lines using Hough transform
         let options = LineDetectionOptions {
@@ -48,6 +49,7 @@ impl Pattern for ChessBoard {
         // Find intersections of lines
         for i in 0..lines.len() {
             for j in i..lines.len() {
+                // Due to Hough algorithm, the radius of the lines can be negative and shall be considered on angle
                 let alpha = if lines[i].r >= 0. {
                     lines[i].angle_in_degrees as f32
                 } else {
@@ -66,6 +68,7 @@ impl Pattern for ChessBoard {
                 let b: Vector2<f32> = Vector2::new(lines[i].r.abs(), lines[j].r.abs());
                 let decomp = a.lu();
                 let x = decomp.solve(&b);
+                // Check if there's a solution
                 match x {
                     Some(x) => {
                         let point = Point2::new(x[0], x[1]);
